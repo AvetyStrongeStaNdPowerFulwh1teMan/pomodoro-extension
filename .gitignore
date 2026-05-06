@@ -1,0 +1,31 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Secrets & env (extension does not need them today — keep if you add later)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+credentials.json
+secrets.*
+
+# Chrome Web Store / packaging (often contain keys or IDs you may not want public)
+*.zip
+*.crx
+*.xpi
+
+# Local audio (add your own file; avoid accidental commit of large or licensed tracks)
+assets/*.mp3
+assets/*.wav
+assets/*.m4a
+assets/*.ogg
+
+# If you add a toolchain later
+node_modules/
+dist/
+coverage/

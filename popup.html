@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomodoro Timer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pomodoro</h1>
+      <div id="phase" class="status">Работа</div>
+    </header>
+
+    <section class="timer" aria-label="Таймер Pomodoro">
+      <div class="timer-ring" aria-hidden="true"></div>
+      <div id="display" aria-live="polite">25:00</div>
+    </section>
+
+    <section class="settings" aria-label="Настройки времени">
+      <label>
+        Работа, мин
+        <input id="workMinutes" type="number" min="1" max="180" step="1" value="25">
+      </label>
+      <label>
+        Отдых, мин
+        <input id="breakMinutes" type="number" min="1" max="60" step="1" value="5">
+      </label>
+    </section>
+
+    <section class="phase-switch" aria-label="Выбор фазы">
+      <button id="workPhase" class="phase-button" type="button" aria-pressed="true">Работа</button>
+      <button id="breakPhase" class="phase-button" type="button" aria-pressed="false">Отдых</button>
+    </section>
+
+    <section class="controls" aria-label="Управление таймером">
+      <button id="start" type="button">Старт</button>
+      <button id="stop" type="button" disabled>Стоп</button>
+      <button id="reset" type="button">Сброс</button>
+    </section>
+
+    <button id="statsToggle" class="stats-toggle" type="button" aria-expanded="false">Статистика</button>
+
+    <section id="statsPanel" class="stats-panel" aria-label="Статистика продуктивности">
+      <h2>Продуктивность</h2>
+      <div class="calendar">
+        <div class="calendar-head">
+          <div id="calendarTitle" class="calendar-title">Месяц</div>
+          <div class="calendar-nav" aria-label="Навигация календаря">
+            <button id="prevMonth" class="calendar-nav-button" type="button" aria-label="Предыдущий месяц">‹</button>
+            <button id="todayMonth" class="calendar-today-button" type="button">Сегодня</button>
+            <button id="nextMonth" class="calendar-nav-button" type="button" aria-label="Следующий месяц">›</button>
+          </div>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Пн</span>
+          <span>Вт</span>
+          <span>Ср</span>
+          <span>Чт</span>
+          <span>Пт</span>
+          <span>Сб</span>
+          <span>Вс</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <div class="month-summary">
+          <span>Итоговая продуктивность</span>
+          <span id="monthProductive">00:00</span>
+        </div>
+        <div id="yearSummary" class="year-summary">
+          <span id="yearSummaryLabel">Итоговая продуктивность за год</span>
+          <span id="yearProductive">00:00</span>
+        </div>
+      </div>
+      <div class="stats-actions">
+        <button id="clearStats" type="button">Очистить</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

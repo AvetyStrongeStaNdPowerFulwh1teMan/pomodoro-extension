@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Pomodoro tomato">
+  <rect width="128" height="128" rx="28" fill="#fffaf1"/>
+  <circle cx="64" cy="70" r="38" fill="#cf3f45"/>
+  <path fill="#2f7d50" d="M64 18l8 24 24-11-13 22 25 6-27 8 12 23-24-14-17 21-1-28-27 5 23-16-18-18 26 4z"/>
+  <circle cx="50" cy="58" r="7" fill="#f08a8f" opacity=".75"/>
+  <path fill="#9c2630" d="M31 77c7 21 25 32 47 29 13-2 24-9 30-20-9 28-44 39-68 21-10-7-16-17-18-29z" opacity=".35"/>
+</svg>
