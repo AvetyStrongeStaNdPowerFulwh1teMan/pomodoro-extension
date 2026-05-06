@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomodoro Timer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f0e8;
+      --panel: #fffaf1;
+      --ink: #18212b;
+      --muted: #66717f;
+      --line: #dfd6c7;
+      --work: #cf3f45;
+      --break: #287d68;
+      --work-soft: #f7d7d9;
+      --break-soft: #cfe9df;
+      --button: #1f2933;
+      --button-hover: #0f1720;
+      --shadow: 0 24px 70px rgba(49, 40, 27, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(207, 63, 69, 0.10), transparent 42%),
+        linear-gradient(315deg, rgba(40, 125, 104, 0.13), transparent 46%),
+        var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 520px);
+      padding: 32px;
+      border: 1px solid rgba(116, 100, 76, 0.20);
+      border-radius: 8px;
+      background: rgba(255, 250, 241, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 4vw, 2.2rem);
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .status {
+      min-width: 112px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--work-soft);
+      color: var(--work);
+      font-weight: 750;
+      text-align: center;
+      transition: background 180ms ease, color 180ms ease;
+    }
+
+    body.break-mode .status {
+      background: var(--break-soft);
+      color: var(--break);
+    }
+
+    .timer {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(100%, 340px);
+      aspect-ratio: 1;
+      margin: 0 auto 28px;
+    }
+
+    .timer-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--work) var(--progress), rgba(24, 33, 43, 0.10) 0),
+        linear-gradient(var(--panel), var(--panel));
+      transition: background 180ms ease;
+    }
+
+    body.break-mode .timer-ring {
+      background:
+        conic-gradient(var(--break) var(--progress), rgba(24, 33, 43, 0.10) 0),
+        linear-gradient(var(--panel), var(--panel));
+    }
+
+    .timer-ring::after {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border-radius: inherit;
+      background: var(--panel);
+      border: 1px solid rgba(116, 100, 76, 0.18);
+    }
+
+    #display {
+      position: relative;
+      z-index: 1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: clamp(3.6rem, 15vw, 5.7rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    input {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 750;
+    }
+
+    input:focus {
+      outline: 3px solid rgba(207, 63, 69, 0.18);
+      border-color: rgba(207, 63, 69, 0.48);
+    }
+
+    body.break-mode input:focus {
+      outline-color: rgba(40, 125, 104, 0.18);
+      border-color: rgba(40, 125, 104, 0.50);
+    }
+
+    .phase-switch {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .phase-button {
+      min-height: 42px;
+      background: transparent;
+      color: var(--muted);
+      border: 0;
+    }
+
+    .phase-button:hover:not(:disabled) {
+      background: rgba(24, 33, 43, 0.06);
+      color: var(--ink);
+    }
+
+    .phase-button[aria-pressed="true"] {
+      background: var(--work);
+      color: #ffffff;
+    }
+
+    body.break-mode .phase-button[aria-pressed="true"] {
+      background: var(--break);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stats-toggle {
+      width: 100%;
+      background: #ffffff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .stats-toggle:hover:not(:disabled) {
+      background: rgba(24, 33, 43, 0.06);
+    }
+
+    button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--button);
+      color: #ffffff;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--button-hover);
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    #reset {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    #reset:hover:not(:disabled) {
+      background: rgba(24, 33, 43, 0.06);
+    }
+
+    .stats-panel {
+      display: none;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .stats-panel.is-open {
+      display: block;
+    }
+
+    .stats-panel h2 {
+      margin: 0 0 12px;
+      font-size: 1.08rem;
+      line-height: 1.2;
+    }
+
+    .calendar {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .calendar-head {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .calendar-nav-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .calendar-month-btn {
+      flex: 0 0 auto;
+      width: 42px;
+      min-height: 42px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 1.35rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .calendar-month-btn:hover:not(:disabled) {
+      background: rgba(24, 33, 43, 0.06);
+    }
+
+    .calendar-month-btn:focus-visible {
+      outline: 3px solid rgba(207, 63, 69, 0.22);
+      outline-offset: 2px;
+    }
+
+    .calendar-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.98rem;
+      font-weight: 800;
+    }
+
+    .calendar-legend {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .calendar-today-btn {
+      align-self: center;
+      margin-top: 2px;
+      padding: 6px 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .calendar-today-btn:hover:not(:disabled) {
+      background: rgba(24, 33, 43, 0.06);
+    }
+
+    .calendar-today-btn:focus-visible {
+      outline: 3px solid rgba(207, 63, 69, 0.22);
+      outline-offset: 2px;
+    }
+
+    .calendar-today-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .legend-dot,
+    .day-dot {
+      width: 18px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px solid rgba(24, 33, 43, 0.10);
+      background: var(--activity-color, rgba(24, 33, 43, 0.08));
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .calendar-weekdays {
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .calendar-grid {
+      min-height: 186px;
+    }
+
+    .calendar-day {
+      display: grid;
+      place-items: center;
+      min-height: 26px;
+    }
+
+    .day-dot {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      color: rgba(24, 33, 43, 0.72);
+      font-size: 0.68rem;
+      font-weight: 800;
+      cursor: default;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .day-dot:hover {
+      transform: scale(1.16);
+      box-shadow: 0 8px 18px rgba(24, 33, 43, 0.14);
+    }
+
+    .day-dot.is-today {
+      outline: 2px solid rgba(24, 33, 43, 0.28);
+      outline-offset: 2px;
+    }
+
+    .month-summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 12px 0 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(24, 33, 43, 0.06);
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
+    #monthProductive {
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-weight: 850;
+    }
+
+    /* Итог за календарный год (виден только в декабре при листании) */
+    .year-summary {
+      margin-top: 0;
+      background: rgba(207, 63, 69, 0.08);
+      border: 1px solid rgba(207, 63, 69, 0.12);
+    }
+
+    .year-summary[hidden] {
+      display: none !important;
+    }
+
+    #yearProductive {
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-weight: 850;
+    }
+
+    .stats-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .stats-actions button {
+      min-width: 150px;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .stats-actions button:hover:not(:disabled) {
+      background: rgba(24, 33, 43, 0.06);
+    }
+
+    @media (max-width: 520px) {
+      main {
+        padding: 22px;
+      }
+
+      header,
+      .phase-switch,
+      .settings,
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        display: grid;
+      }
+
+      .status {
+        width: 100%;
+      }
+
+      .calendar-head {
+        align-items: stretch;
+      }
+
+      .calendar-nav-row {
+        gap: 8px;
+      }
+
+      .month-summary {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .calendar-weekdays,
+      .calendar-grid {
+        gap: 6px;
+      }
+
+      .stats-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Pomodoro Timer</h1>
+      <div id="phase" class="status">Работа</div>
+    </header>
+
+    <section class="timer" aria-label="Таймер Pomodoro">
+      <div class="timer-ring" aria-hidden="true"></div>
+      <div id="display" aria-live="polite">25:00</div>
+    </section>
+
+    <section class="settings" aria-label="Настройки времени">
+      <label>
+        Работа, мин
+        <input id="workMinutes" type="number" min="1" max="180" step="1" value="25">
+      </label>
+      <label>
+        Перерыв, мин
+        <input id="breakMinutes" type="number" min="1" max="60" step="1" value="5">
+      </label>
+    </section>
+
+    <section class="phase-switch" aria-label="Выбор фазы">
+      <button id="workPhase" class="phase-button" type="button" aria-pressed="true">Работа</button>
+      <button id="breakPhase" class="phase-button" type="button" aria-pressed="false">Отдых</button>
+    </section>
+
+    <section class="controls" aria-label="Управление таймером">
+      <button id="start" type="button">Старт</button>
+      <button id="stop" type="button" disabled>Стоп</button>
+      <button id="reset" type="button">Сброс</button>
+    </section>
+
+    <button id="statsToggle" class="stats-toggle" type="button" aria-expanded="false">Статистика</button>
+
+    <section id="statsPanel" class="stats-panel" aria-label="Статистика продуктивности">
+      <h2>Продуктивность</h2>
+      <div class="calendar">
+        <div class="calendar-head">
+          <div class="calendar-nav-row">
+            <button id="calendarPrevMonth" class="calendar-month-btn" type="button" aria-label="Предыдущий месяц">‹</button>
+            <div id="calendarTitle" class="calendar-title">Месяц</div>
+            <button id="calendarNextMonth" class="calendar-month-btn" type="button" aria-label="Следующий месяц">›</button>
+          </div>
+          <div class="calendar-legend" aria-label="Интенсивность активности">
+            меньше
+            <span class="legend-dot" style="--activity-color: rgba(24, 33, 43, 0.08)"></span>
+            <span class="legend-dot" style="--activity-color: rgba(207, 63, 69, 0.32)"></span>
+            <span class="legend-dot" style="--activity-color: rgba(207, 63, 69, 0.62)"></span>
+            <span class="legend-dot" style="--activity-color: rgba(207, 63, 69, 0.94)"></span>
+            больше
+          </div>
+          <button id="calendarToday" class="calendar-today-btn" type="button" aria-label="Перейти к текущему месяцу">Сегодня</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Пн</span>
+          <span>Вт</span>
+          <span>Ср</span>
+          <span>Чт</span>
+          <span>Пт</span>
+          <span>Сб</span>
+          <span>Вс</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <div class="month-summary">
+          <span>Общее время продуктивности за месяц</span>
+          <span id="monthProductive">00:00</span>
+        </div>
+        <div id="yearSummary" class="month-summary year-summary" hidden>
+          <span>Общее время продуктивности за <span id="yearSummaryLabel"></span>&nbsp;год</span>
+          <span id="yearProductive">00:00</span>
+        </div>
+      </div>
+      <div class="stats-actions">
+        <button id="clearStats" type="button">Очистить</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "pomodoroProductivityStats";
+    const display = document.querySelector("#display");
+    const phaseLabel = document.querySelector("#phase");
+    const workInput = document.querySelector("#workMinutes");
+    const breakInput = document.querySelector("#breakMinutes");
+    const workPhaseButton = document.querySelector("#workPhase");
+    const breakPhaseButton = document.querySelector("#breakPhase");
+    const startButton = document.querySelector("#start");
+    const stopButton = document.querySelector("#stop");
+    const resetButton = document.querySelector("#reset");
+    const statsToggle = document.querySelector("#statsToggle");
+    const statsPanel = document.querySelector("#statsPanel");
+    const calendarTitle = document.querySelector("#calendarTitle");
+    const calendarGrid = document.querySelector("#calendarGrid");
+    const calendarPrevMonth = document.querySelector("#calendarPrevMonth");
+    const calendarNextMonth = document.querySelector("#calendarNextMonth");
+    const calendarTodayBtn = document.querySelector("#calendarToday");
+    const monthProductive = document.querySelector("#monthProductive");
+    const yearSummary = document.querySelector("#yearSummary");
+    const yearSummaryLabel = document.querySelector("#yearSummaryLabel");
+    const yearProductive = document.querySelector("#yearProductive");
+    const clearStatsButton = document.querySelector("#clearStats");
+
+    let phase = "work";
+    let intervalId = null;
+    let remainingSeconds = getMinutes(workInput) * 60;
+    let phaseTotalSeconds = remainingSeconds;
+    let productivityStats = loadStats();
+
+    /* Год и месяц календаря статистики (независимо от текущей даты; листание ‹ ›). */
+    const statsAnchor = new Date();
+    let statsViewYear = statsAnchor.getFullYear();
+    let statsViewMonth = statsAnchor.getMonth();
+
+    // Возвращает безопасное целое значение минут из поля ввода.
+    function getMinutes(input) {
+      const min = Number(input.min) || 1;
+      const max = Number(input.max) || 180;
+      const value = Number.parseInt(input.value, 10);
+      return Math.min(Math.max(Number.isFinite(value) ? value : min, min), max);
+    }
+
+    // Форматирует секунды в стабильный вид MM:SS.
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const restSeconds = seconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(restSeconds).padStart(2, "0")}`;
+    }
+
+    // Форматирует продуктивное время в часы и минуты.
+    function formatProductiveTime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    }
+
+    // Загружает статистику из браузера; при ошибке начинает с пустой.
+    function loadStats() {
+      try {
+        return JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    // Сохраняет статистику продуктивности в текущем браузере.
+    function saveStats() {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(productivityStats));
+    }
+
+    // Возвращает локальную дату в формате YYYY-MM-DD.
+    function getDateKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    // Учитывает одну секунду работы и сразу обновляет открытую статистику.
+    function addProductiveSecond() {
+      const today = getDateKey();
+
+      productivityStats[today] = (productivityStats[today] || 0) + 1;
+      saveStats();
+      updateStats();
+    }
+
+    // Возвращает цвет кружка по интенсивности активности в пределах месяца.
+    function getActivityColor(seconds, maxSeconds) {
+      if (seconds === 0 || maxSeconds === 0) {
+        return "rgba(24, 33, 43, 0.08)";
+      }
+
+      const ratio = seconds / maxSeconds;
+
+      if (ratio < 0.25) {
+        return "rgba(207, 63, 69, 0.28)";
+      }
+
+      if (ratio < 0.5) {
+        return "rgba(207, 63, 69, 0.46)";
+      }
+
+      if (ratio < 0.75) {
+        return "rgba(207, 63, 69, 0.68)";
+      }
+
+      return "rgba(207, 63, 69, 0.94)";
+    }
+
+    // Формирует человекочитаемую дату для подсказки на кружке.
+    function formatDateLabel(date) {
+      return date.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    }
+
+    // Сумма секунд продуктивности за календарный год (все даты YYYY-…).
+    function getYearTotalSeconds(year) {
+      const prefix = `${year}-`;
+
+      return Object.entries(productivityStats)
+        .filter(([date]) => date.startsWith(prefix))
+        .reduce((sum, [, seconds]) => sum + seconds, 0);
+    }
+
+    // Возвращает календарь статистики к текущей дате (месяц и год «сегодня»).
+    function goStatsToToday() {
+      const now = new Date();
+
+      statsViewYear = now.getFullYear();
+      statsViewMonth = now.getMonth();
+      updateStats();
+    }
+
+    // Сдвигает просматриваемый месяц на ±1 с переходом через границу года.
+    function shiftStatsMonth(delta) {
+      statsViewMonth += delta;
+
+      if (statsViewMonth > 11) {
+        statsViewMonth = 0;
+        statsViewYear += 1;
+      } else if (statsViewMonth < 0) {
+        statsViewMonth = 11;
+        statsViewYear -= 1;
+      }
+
+      updateStats();
+    }
+
+    // Перерисовывает календарь активности за выбранный месяц (statsViewYear / statsViewMonth).
+    function updateStats() {
+      const year = statsViewYear;
+      const month = statsViewMonth;
+      const firstDay = new Date(year, month, 1);
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const startOffset = (firstDay.getDay() + 6) % 7;
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+      const monthEntries = Object.entries(productivityStats).filter(([date]) => date.startsWith(monthPrefix));
+      const monthTotal = monthEntries.reduce((sum, [, seconds]) => sum + seconds, 0);
+      const maxDaySeconds = monthEntries.reduce((max, [, seconds]) => Math.max(max, seconds), 0);
+
+      calendarTitle.textContent = new Date(year, month, 1).toLocaleDateString("ru-RU", {
+        month: "long",
+        year: "numeric"
+      });
+      calendarGrid.innerHTML = "";
+
+      for (let index = 0; index < startOffset; index += 1) {
+        calendarGrid.append(document.createElement("div"));
+      }
+
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        const dateKey = getDateKey(date);
+        const seconds = productivityStats[dateKey] || 0;
+        const cell = document.createElement("div");
+        const dot = document.createElement("div");
+
+        cell.className = "calendar-day";
+        dot.className = "day-dot";
+        dot.textContent = day;
+        dot.title = `${formatDateLabel(date)}: ${formatProductiveTime(seconds)}`;
+        dot.style.setProperty("--activity-color", getActivityColor(seconds, maxDaySeconds));
+        dot.classList.toggle("is-today", dateKey === getDateKey());
+
+        cell.append(dot);
+        calendarGrid.append(cell);
+      }
+
+      monthProductive.textContent = formatProductiveTime(monthTotal);
+
+      // В декабре показываем итог за весь календарный год того же года.
+      if (month === 11) {
+        yearSummary.hidden = false;
+        yearSummaryLabel.textContent = String(year);
+        yearProductive.textContent = formatProductiveTime(getYearTotalSeconds(year));
+      } else {
+        yearSummary.hidden = true;
+      }
+
+      const nowCal = new Date();
+      const isCurrentMonth =
+        statsViewYear === nowCal.getFullYear() && statsViewMonth === nowCal.getMonth();
+
+      calendarTodayBtn.disabled = isCurrentMonth;
+    }
+
+    // Обновляет текст, фазу, прогресс-кольцо и состояние кнопок.
+    function updateDisplay() {
+      const elapsed = phaseTotalSeconds - remainingSeconds;
+      const progress = phaseTotalSeconds > 0 ? (elapsed / phaseTotalSeconds) * 100 : 100;
+      const formattedTime = formatTime(remainingSeconds);
+      const phaseText = phase === "work" ? "Работа" : "Отдых";
+
+      display.textContent = formattedTime;
+      phaseLabel.textContent = phaseText;
+      document.title = `${formattedTime} - ${phaseText}`;
+      document.body.classList.toggle("break-mode", phase === "break");
+      document.body.style.setProperty("--progress", `${progress}%`);
+      workPhaseButton.setAttribute("aria-pressed", String(phase === "work"));
+      breakPhaseButton.setAttribute("aria-pressed", String(phase === "break"));
+      startButton.disabled = intervalId !== null;
+      stopButton.disabled = intervalId === null;
+    }
+
+    // Переводит таймер в указанную фазу и задаёт её полную длительность.
+    function setPhase(nextPhase) {
+      phase = nextPhase;
+      remainingSeconds = getMinutes(nextPhase === "work" ? workInput : breakInput) * 60;
+      phaseTotalSeconds = remainingSeconds;
+      updateDisplay();
+    }
+
+    // Каждую секунду уменьшает остаток и переключает работа -> перерыв -> стоп.
+    function tick() {
+      if (remainingSeconds > 0) {
+        remainingSeconds -= 1;
+
+        if (phase === "work") {
+          addProductiveSecond();
+        }
+      }
+
+      if (remainingSeconds === 0) {
+        if (phase === "work") {
+          setPhase("break");
+          return;
+        }
+
+        stop();
+      }
+
+      updateDisplay();
+    }
+
+    // Запускает новый цикл или продолжает паузу с текущего остатка.
+    function start() {
+      if (intervalId !== null) {
+        return;
+      }
+
+      if (remainingSeconds === 0) {
+        setPhase("work");
+      }
+
+      intervalId = window.setInterval(tick, 1000);
+      updateDisplay();
+    }
+
+    // Ставит таймер на паузу без сброса оставшегося времени.
+    function stop() {
+      window.clearInterval(intervalId);
+      intervalId = null;
+      updateDisplay();
+    }
+
+    // Останавливает таймер и возвращает его к рабочей фазе.
+    function reset() {
+      window.clearInterval(intervalId);
+      intervalId = null;
+      setPhase("work");
+    }
+
+    // Меняет фазу вручную и сохраняет состояние запуска таймера.
+    function switchPhase(nextPhase) {
+      const wasRunning = intervalId !== null;
+
+      window.clearInterval(intervalId);
+      intervalId = null;
+      setPhase(nextPhase);
+
+      if (wasRunning) {
+        intervalId = window.setInterval(tick, 1000);
+        updateDisplay();
+      }
+    }
+
+    startButton.addEventListener("click", start);
+    stopButton.addEventListener("click", stop);
+    resetButton.addEventListener("click", reset);
+
+    calendarPrevMonth.addEventListener("click", () => {
+      shiftStatsMonth(-1);
+    });
+
+    calendarNextMonth.addEventListener("click", () => {
+      shiftStatsMonth(1);
+    });
+
+    calendarTodayBtn.addEventListener("click", () => {
+      goStatsToToday();
+    });
+
+    statsToggle.addEventListener("click", () => {
+      const isOpen = statsPanel.classList.toggle("is-open");
+
+      statsToggle.setAttribute("aria-expanded", String(isOpen));
+      updateStats();
+    });
+
+    clearStatsButton.addEventListener("click", () => {
+      productivityStats = {};
+      saveStats();
+      updateStats();
+    });
+
+    workPhaseButton.addEventListener("click", () => {
+      switchPhase("work");
+    });
+
+    breakPhaseButton.addEventListener("click", () => {
+      switchPhase("break");
+    });
+
+    // Если таймер не идёт, изменение текущей фазы сразу отражается на дисплее.
+    workInput.addEventListener("input", () => {
+      if (intervalId === null && phase === "work") {
+        setPhase("work");
+      }
+    });
+
+    breakInput.addEventListener("input", () => {
+      if (intervalId === null && phase === "break") {
+        setPhase("break");
+      }
+    });
+
+    updateDisplay();
+    updateStats();
+  </script>
+</body>
+</html>

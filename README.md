@@ -2,6 +2,10 @@
 
 This folder is a Chrome extension version of the Pomodoro timer.
 
+## Standalone web page
+
+`index.html` is a single-file Pomodoro timer (inline CSS and JS). It loads **no external resources**, makes **no network requests** (`fetch`, XHR, WebSocket, third-party scripts, or analytics), and keeps productivity stats only in the visitor’s **`localStorage`** in their own browser—nothing is uploaded to GitHub, Vercel, or any other server when they use the page.
+
 ## Sound
 
 Add your MP3 file here:
@@ -23,7 +27,7 @@ The timer state and productivity calendar are stored in Chrome extension storage
 
 ## Open source & safety
 
-There are **no API keys or server credentials** in this codebase: everything runs in the browser and saves settings in `chrome.storage.local` only.
+There are **no API keys or server credentials** in this codebase: the extension saves state in `chrome.storage.local`, and the standalone **`index.html`** uses only `localStorage` with the same privacy model (local to the device, never sent by this code).
 
 Before publishing or opening a pull request:
 
