@@ -144,7 +144,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: var(--button-hover);
+  transform: none;
 }
 
 button:disabled {
@@ -153,10 +153,30 @@ button:disabled {
 }
 
 .phase-switch {
+  position: relative;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.58);
+  overflow: hidden;
+}
+
+.phase-switch::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc((100% - 18px) / 2);
+  height: calc(100% - 8px);
+  border-radius: 6px;
+  background: var(--work);
+  transition: transform 240ms ease, background 180ms ease;
+  pointer-events: none;
+}
+
+body.break-mode .phase-switch::before {
+  transform: translateX(calc(100% + 10px));
+  background: var(--break);
 }
 
 .phase-button,
@@ -169,17 +189,36 @@ button:disabled {
 }
 
 .phase-button {
+  position: relative;
+  z-index: 1;
   border: 0;
   color: var(--muted);
+  background: transparent !important;
 }
 
 .phase-button[aria-pressed="true"] {
-  background: var(--work);
   color: #ffffff;
 }
 
 body.break-mode .phase-button[aria-pressed="true"] {
-  background: var(--break);
+  color: #ffffff;
+}
+
+.phase-button:hover:not(:disabled) {
+  color: var(--ink);
+  background: transparent !important;
+}
+
+.phase-button:active:not(:disabled),
+.phase-button:focus-visible {
+  background: transparent !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-switch::before,
+  .phase-button {
+    transition: none;
+  }
 }
 
 .stats-toggle {
